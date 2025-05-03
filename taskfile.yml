@@ -1,0 +1,16 @@
+version: "3"
+
+tasks:
+  build:
+    desc: builds white-noise
+    cmds:
+      - mkdir -p ./bin
+      - go build -o ./bin/white-noise cmd/white-noise/main.go
+  run:
+    desc: runs white-noise
+    deps: [build]
+    sources:
+      - "taskfile.yml"
+      - "**/*.go"
+    cmds:
+      - ./bin/white-noise

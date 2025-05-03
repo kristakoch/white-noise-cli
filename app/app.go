@@ -1,4 +1,4 @@
-package main
+package app
 
 import (
 	"fmt"
@@ -12,15 +12,7 @@ import (
 	"github.com/faiface/beep/wav"
 )
 
-func main() {
-	p := tea.NewProgram(initialModel())
-	if _, err := p.Run(); err != nil {
-		fmt.Printf("Alas, there's been an error: %v", err)
-		os.Exit(1)
-	}
-}
-
-type model struct {
+type Model struct {
 	choices  []string  // white noise options
 	cursor   int       // which choice our cursor is pointing at
 	selected int       // which choice is selected
@@ -28,8 +20,8 @@ type model struct {
 	err      errMsg    // any errors
 }
 
-func initialModel() model {
-	return model{
+func InitialModel() Model {
+	return Model{
 		choices: []string{
 
 			/*
@@ -55,12 +47,12 @@ func initialModel() model {
 	}
 }
 
-func (m model) Init() tea.Cmd {
+func (m Model) Init() tea.Cmd {
 	// Just return `nil`, which means "no I/O right now, please."
 	return nil
 }
 
-func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 
 	case tea.KeyMsg:
@@ -96,7 +88,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case statusMsg:
 
-		// There was a non-ok status. Update the model and exit.
+		// There was a non-ok status. Update the Model and exit.
 		if msg != 0 {
 			m.err = errMsg{fmt.Errorf("received non-ok status %d", msg)}
 			return m, tea.Quit
@@ -104,17 +96,17 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case errMsg:
 
-		// There was an error. Update the model and exit.
+		// There was an error. Update the Model and exit.
 		m.err = msg
 		return m, tea.Quit
 	}
 
-	// Return the updated model to the Bubble Tea runtime for processing.
+	// Return the updated Model to the Bubble Tea runtime for processing.
 	// Note that we're not returning a command.
 	return m, nil
 }
 
-func (m model) View() string {
+func (m Model) View() string {
 
 	if nil != m.err.err {
 		s := "\nThere was an error processing the request: \n\n"
@@ -147,12 +139,12 @@ func (m model) View() string {
 	return s
 }
 
-func (m model) playTrack() tea.Msg {
+func (m Model) playTrack() tea.Msg {
 	track := m.choices[m.selected]
 
 	track = snakeCase(track)
 
-	fileName := fmt.Sprintf("%s.wav", track)
+	fileName := fmt.Sprintf("assets/%s.wav", track)
 
 	f, err := os.Open(fileName)
 	if err != nil {
@@ -191,7 +183,7 @@ func (m model) playTrack() tea.Msg {
 	}
 }
 
-func (m model) stopTrack() tea.Msg {
+func (m Model) stopTrack() tea.Msg {
 	m.stop <- true
 
 	return statusMsg(0)
