@@ -32,7 +32,26 @@ type model struct {
 
 func initialModel() model {
 	return model{
-		choices:  []string{"Rain", "Rain", "Rain (error test)"},
+		choices: []string{
+
+			/*
+				forest summer Roond 005 200619_0186.wav by klankbeeld
+				-- https://freesound.org/s/524238/ -- License: Attribution 4.0
+			*/
+			"Forest",
+
+			/*
+				Empty train moving slowly (recorded inside passenger car) by avakas
+				-- https://freesound.org/s/197124/ -- License: Creative Commons 0
+			*/
+			"Train car",
+
+			/*
+				Canadian Horse Carriage.wav by vero.marengere
+				-- https://freesound.org/s/450325/ -- License: Attribution NonCommercial 4.0
+			*/
+			"Horse carriage",
+		},
 		selected: -1,
 		stop:     make(chan bool),
 	}
@@ -132,7 +151,7 @@ func (m model) View() string {
 
 func (m model) playTrack() tea.Msg {
 	track := m.choices[m.selected]
-	track = strings.ToLower(track)
+	track = snakeCase(track)
 
 	fileName := fmt.Sprintf("%s.wav", track)
 
@@ -179,3 +198,11 @@ func (m model) stopTrack() tea.Msg {
 type statusMsg int
 
 type errMsg struct{ err error }
+
+func snakeCase(s string) string {
+	return strings.ToLower(
+		strings.ReplaceAll(
+			s, " ", "-",
+		),
+	)
+}
