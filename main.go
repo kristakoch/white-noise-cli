@@ -27,11 +27,12 @@ type model struct {
 	cursor   int       // which choice our cursor is pointing at
 	selected int       // which choice is selected
 	stop     chan bool // a way to stop the running track
+	err      errMsg    // any errors
 }
 
 func initialModel() model {
 	return model{
-		choices:  []string{"Rain", "Rain", "Rain"},
+		choices:  []string{"Rain", "Rain", "Rain (error test)"},
 		selected: -1,
 		stop:     make(chan bool),
 	}
@@ -75,6 +76,20 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, m.stopTrack
 			}
 		}
+
+	case statusMsg:
+
+		// There was a non-ok status. Update the model and exit.
+		if msg != 0 {
+			m.err = errMsg{fmt.Errorf("received non-ok status %d", msg)}
+			return m, tea.Quit
+		}
+
+	case errMsg:
+
+		// There was an error. Update the model and exit.
+		m.err = msg
+		return m, tea.Quit
 	}
 
 	// Return the updated model to the Bubble Tea runtime for processing.
@@ -83,6 +98,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) View() string {
+
+	if nil != m.err.err {
+		s := "\nThere was an error processing the request: \n\n"
+		s += m.err.err.Error() + "\n\n"
+		return s
+	}
 
 	s := "What sound do you want to hear?\n\n"
 
@@ -126,10 +147,12 @@ func (m model) playTrack() tea.Msg {
 	}
 	defer streamer.Close()
 
-	speaker.Init(
+	if err = speaker.Init(
 		format.SampleRate,
 		format.SampleRate.N(time.Second/10),
-	)
+	); nil != err {
+		return errMsg{fmt.Errorf("failed to initialize speaker: %s", err)}
+	}
 
 	loop := beep.Loop(-1, streamer)
 
@@ -141,18 +164,18 @@ func (m model) playTrack() tea.Msg {
 
 	select {
 	case <-done:
-		return status(0)
+		return statusMsg(0)
 	case <-m.stop:
-		return status(0)
+		return statusMsg(0)
 	}
 }
 
 func (m model) stopTrack() tea.Msg {
 	m.stop <- true
 
-	return status(0)
+	return statusMsg(0)
 }
 
-type status int
+type statusMsg int
 
 type errMsg struct{ err error }
