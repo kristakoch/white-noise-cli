@@ -12,8 +12,6 @@ import (
 	"github.com/faiface/beep/wav"
 )
 
-// https://freesound.org/
-// https://github.com/charmbracelet/bubbletea/tree/main/tutorials/basics
 func main() {
 	p := tea.NewProgram(initialModel())
 	if _, err := p.Run(); err != nil {
@@ -151,6 +149,7 @@ func (m model) View() string {
 
 func (m model) playTrack() tea.Msg {
 	track := m.choices[m.selected]
+
 	track = snakeCase(track)
 
 	fileName := fmt.Sprintf("%s.wav", track)
@@ -173,6 +172,7 @@ func (m model) playTrack() tea.Msg {
 		return errMsg{fmt.Errorf("failed to initialize speaker: %s", err)}
 	}
 
+	// Loop until further notice.
 	loop := beep.Loop(-1, streamer)
 
 	done := make(chan bool)
@@ -181,6 +181,8 @@ func (m model) playTrack() tea.Msg {
 	})))
 	defer speaker.Close()
 
+	// Keep looping until we get a stop signal
+	// or the audio ends for some reason.
 	select {
 	case <-done:
 		return statusMsg(0)
