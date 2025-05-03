@@ -5,7 +5,7 @@ tasks:
     desc: builds white-noise
     cmds:
       - mkdir -p ./bin
-      - go build -o ./bin/white-noise cmd/white-noise/main.go
+      - go build -o ./bin/white-noise cmd/main.go
   run:
     desc: runs white-noise
     deps: [build]

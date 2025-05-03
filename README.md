@@ -3,7 +3,7 @@ whshhhhhhhh shhhhhhhh shhhh
 
 
 Build: 
-`go build -o white-noise cmd/white-noise/main.go`
+`go build -o white-noise cmd/main.go`
 
 Run:
 `go run ./bin/white-noise`
