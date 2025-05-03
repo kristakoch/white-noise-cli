@@ -1,8 +1,8 @@
 package app
 
 import (
+	"embed"
 	"fmt"
-	"os"
 	"strings"
 	"time"
 
@@ -11,6 +11,9 @@ import (
 	"github.com/faiface/beep/speaker"
 	"github.com/faiface/beep/wav"
 )
+
+//go:embed assets/*
+var folder embed.FS
 
 type Model struct {
 	choices  []string  // white noise options
@@ -146,7 +149,7 @@ func (m Model) playTrack() tea.Msg {
 
 	fileName := fmt.Sprintf("assets/%s.wav", track)
 
-	f, err := os.Open(fileName)
+	f, err := folder.Open(fileName)
 	if err != nil {
 		return errMsg{fmt.Errorf("failed to open file %s: %s", fileName, err)}
 	}
