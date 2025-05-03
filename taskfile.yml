@@ -9,8 +9,10 @@ tasks:
   run:
     desc: runs white-noise
     deps: [build]
-    sources:
-      - "taskfile.yml"
-      - "**/*.go"
     cmds:
       - ./bin/white-noise
+  install:
+    desc: installs white-noise
+    deps: [build]
+    cmds:
+      - cp bin/white-noise "$(go env GOPATH)/bin/"
