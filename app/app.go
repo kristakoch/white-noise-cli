@@ -6,7 +6,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/faiface/beep"
 	"github.com/faiface/beep/speaker"
 	"github.com/faiface/beep/wav"
@@ -16,15 +18,21 @@ import (
 var folder embed.FS
 
 type Model struct {
-	choices  []string  // white noise options
-	cursor   int       // which choice our cursor is pointing at
-	selected int       // which choice is selected
-	stop     chan bool // a way to stop the running track
-	err      errMsg    // any errors
+	choices  []string      // white noise options
+	cursor   int           // which choice our cursor is pointing at
+	selected int           // which choice is selected
+	stop     chan bool     // a way to stop the running track
+	err      errMsg        // any errors
+	spinner  spinner.Model // animated spinner
 }
 
+var (
+	spinnerStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("192"))
+	helpStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("245"))
+)
+
 func InitialModel() Model {
-	return Model{
+	m := Model{
 		choices: []string{
 
 			/*
@@ -48,11 +56,16 @@ func InitialModel() Model {
 		selected: -1,
 		stop:     make(chan bool),
 	}
+
+	m.spinner = spinner.New()
+	m.spinner.Spinner = spinner.MiniDot
+	m.spinner.Style = spinnerStyle
+
+	return m
 }
 
 func (m Model) Init() tea.Cmd {
-	// Just return `nil`, which means "no I/O right now, please."
-	return nil
+	return m.spinner.Tick
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -102,6 +115,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// There was an error. Update the Model and exit.
 		m.err = msg
 		return m, tea.Quit
+
+	case spinner.TickMsg:
+
+		// Animate the spinner.
+		var cmd tea.Cmd
+		m.spinner, cmd = m.spinner.Update(msg)
+		return m, cmd
 	}
 
 	// Return the updated Model to the Bubble Tea runtime for processing.
@@ -117,7 +137,7 @@ func (m Model) View() string {
 		return s
 	}
 
-	s := "What sound do you want to hear?\n\n"
+	s := "\nChoose the sound you'd like to hear:\n\n"
 
 	for i, choice := range m.choices {
 
@@ -128,15 +148,16 @@ func (m Model) View() string {
 
 		checked := " " // not selected
 		if i == m.selected {
-			checked = "x" // selected!
+			checked = m.spinner.View() // selected!
+			choice = spinnerStyle.Render(choice)
 		}
 
 		// Render the row
-		s += fmt.Sprintf("%s [%s] %s\n", cursor, checked, choice)
+		s += fmt.Sprintf("%s %s %s\n", cursor, checked, choice)
 	}
 
 	// The footer
-	s += "\nPress q to quit.\n"
+	s += helpStyle.Render("\nPress q to quit.")
 
 	// Send the UI for rendering
 	return s

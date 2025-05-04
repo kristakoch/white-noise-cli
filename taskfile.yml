@@ -15,4 +15,4 @@ tasks:
     desc: installs white-noise
     deps: [build]
     cmds:
-      - cp bin/white-noise "$(go env GOPATH)/bin/"
+      - cp bin/white-noise /usr/local/bin
