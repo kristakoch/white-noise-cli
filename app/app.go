@@ -58,6 +58,18 @@ func InitialModel() Model {
 				-- https://freesound.org/s/450325/ -- License: Attribution NonCommercial 4.0
 			*/
 			"Horse carriage",
+
+			// Adding a bunch so we can test list scrollability.
+			// These don't actually exist.
+			"Lizards",
+			"A sad woman making spaghetti",
+			"Loud sweatsuit pants",
+			"Peeing",
+			"An active snake pit",
+			"Coffee shop chatter",
+			"Kombucha brewing room",
+			"Warehouse",
+			"Cloud formations",
 		},
 		selected: -1,
 		stop:     make(chan bool),
@@ -118,9 +130,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case errMsg:
 
-		// There was an error. Update the Model and exit.
+		// There was an error. Update the Model.
+		// Don't exit, otherwise can't see the message.
 		m.err = msg
-		return m, tea.Quit
+		return m, nil
 
 	case spinner.TickMsg:
 
