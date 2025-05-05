@@ -1,7 +1,7 @@
 # white-noise-cli
 whshhhhhhhh shhhhhhhh shhhh
 
-![usage-gif](/app/assets/white-noise.gif)
+<img src="/app/assets/white-noise.gif" loop="infinite">
 
 Build: 
 `go build -o white-noise cmd/main.go`
