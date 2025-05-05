@@ -66,7 +66,7 @@ func InitialModel() Model {
 		stop:     make(chan bool),
 	}
 
-	m.list.Title = (defaultTitle)
+	m.list.Title = defaultTitle
 	m.list.Styles.Title = titleStyle
 
 	return m
