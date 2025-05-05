@@ -36,8 +36,8 @@ func InitialModel() Model {
 		choices: []string{
 
 			/*
-				UnderTreeInRain.mp3 by acclivity
-					-- https://freesound.org/s/28283/ -- License: Attribution NonCommercial 4.0
+				Rain_Storm.wav by rambler52
+				-- https://freesound.org/s/332116/ -- License: Attribution 4.0
 			*/
 			"Rain",
 
