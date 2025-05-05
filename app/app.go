@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/charmbracelet/bubbles/spinner"
+	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/faiface/beep"
@@ -18,72 +18,62 @@ import (
 var folder embed.FS
 
 type Model struct {
-	choices  []string      // white noise options
-	cursor   int           // which choice our cursor is pointing at
-	selected int           // which choice is selected
-	stop     chan bool     // a way to stop the running track
-	err      errMsg        // any errors
-	spinner  spinner.Model // animated spinner
+	list     list.Model // white noise options
+	selected string     // which choice is selected
+	stop     chan bool  // a way to stop the running track
+	err      errMsg     // any errors
 }
 
+type statusMsg int
+
+type errMsg struct{ err error }
+
+type item struct {
+	title, desc string
+}
+
+func (i item) Title() string       { return i.title }
+func (i item) Description() string { return i.desc }
+func (i item) FilterValue() string { return i.title }
+
 var (
-	spinnerStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("192"))
-	helpStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("245"))
+	titleStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("231"))
+	docStyle          = lipgloss.NewStyle().Margin(1, 2)
+	selectedStyle     = lipgloss.NewStyle().Background(lipgloss.Color("103")).Foreground(lipgloss.Color("16")).Padding(0, 1)
+	selectedDescStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("103"))
+
+	defaultTitle = "Choose a sound to play with space or enter"
 )
 
 func InitialModel() Model {
+	d := list.NewDefaultDelegate()
+	d.Styles.SelectedTitle = selectedStyle.MarginLeft(2)
+	d.Styles.SelectedDesc = selectedDescStyle.MarginLeft(2)
+
 	m := Model{
-		choices: []string{
-
-			/*
-				Rain_Storm.wav by rambler52
-				-- https://freesound.org/s/332116/ -- License: Attribution 4.0
-			*/
-			"Rain",
-
-			/*
-				forest summer Roond 005 200619_0186.wav by klankbeeld
-				-- https://freesound.org/s/524238/ -- License: Attribution 4.0
-			*/
-			"Forest",
-
-			/*
-				Empty train moving slowly (recorded inside passenger car) by avakas
-				-- https://freesound.org/s/197124/ -- License: Creative Commons 0
-			*/
-			"Train car",
-
-			/*
-				Canadian Horse Carriage.wav by vero.marengere
-				-- https://freesound.org/s/450325/ -- License: Attribution NonCommercial 4.0
-			*/
-			"Horse carriage",
-
-			// Adding a bunch so we can test list scrollability.
-			// These don't actually exist.
-			"Lizards",
-			"A sad woman making spaghetti",
-			"Loud sweatsuit pants",
-			"Peeing",
-			"An active snake pit",
-			"Coffee shop chatter",
-			"Kombucha brewing room",
-			"Warehouse",
-			"Cloud formations",
-		},
-		selected: -1,
+		list: list.New(
+			[]list.Item{
+				item{title: "Rain", desc: "Rain_Storm.wav by rambler52, https://freesound.org/s/332116/, License: Attribution 4.0"},
+				item{title: "Forest", desc: "forest summer Roond 005 200619_0186.wav by klankbeeld, https://freesound.org/s/524238/, License: Attribution 4.0"},
+				item{title: "Train car", desc: "Empty train moving slowly (recorded inside passenger car) by avakas, https://freesound.org/s/197124/, License: Creative Commons 0"},
+				item{title: "Horse carriage", desc: "Canadian Horse Carriage.wav by vero.marengere, https://freesound.org/s/450325/, License: Attribution NonCommercial 4.0"},
+			},
+			d,
+			0,
+			0,
+		),
+		selected: "",
 		stop:     make(chan bool),
 	}
 
-	m.spinner = spinner.New()
-	m.spinner.Spinner = spinner.MiniDot
-	m.spinner.Style = spinnerStyle
+	m.list.Title = (defaultTitle)
+	m.list.Styles.Title = titleStyle
 
 	return m
 }
 
 func (m Model) Init() tea.Cmd {
-	return m.spinner.Tick
+	return nil
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -97,25 +87,21 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+c", "q":
 			return m, tea.Quit
 
-		// The "up" and "k" keys move the cursor up
-		case "up", "k":
-			if m.cursor > 0 {
-				m.cursor--
-			}
-
-		// The "down" and "j" keys move the cursor down
-		case "down", "j":
-			if m.cursor < len(m.choices)-1 {
-				m.cursor++
-			}
-
 		// Play or pause the track the cursor is pointing at
 		case "enter", " ":
-			if m.selected != m.cursor {
-				m.selected = m.cursor
+			i, ok := m.list.SelectedItem().(item)
+			if !ok {
+				return m, nil
+			}
+
+			if i.FilterValue() != m.selected {
+				m.selected = i.FilterValue()
+				m.list.Title = fmt.Sprintf("⏯ Now playing: %s", m.selected)
 				return m, m.playTrack
+
 			} else {
-				m.selected = -1
+				m.selected = ""
+				m.list.Title = (defaultTitle)
 				return m, m.stopTrack
 			}
 		}
@@ -135,55 +121,30 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.err = msg
 		return m, nil
 
-	case spinner.TickMsg:
+	case tea.WindowSizeMsg:
 
-		// Animate the spinner.
-		var cmd tea.Cmd
-		m.spinner, cmd = m.spinner.Update(msg)
-		return m, cmd
+		// Adjust the window size.
+		h, v := docStyle.GetFrameSize()
+		m.list.SetSize(msg.Width-h, msg.Height-v)
 	}
 
-	// Return the updated Model to the Bubble Tea runtime for processing.
-	// Note that we're not returning a command.
-	return m, nil
+	var cmd tea.Cmd
+	m.list, cmd = m.list.Update(msg)
+
+	return m, cmd
 }
 
 func (m Model) View() string {
-
 	if nil != m.err.err {
 		s := "\nThere was an error processing the request: \n\n"
 		s += m.err.err.Error() + "\n\n"
 		return s
 	}
-
-	s := "\nChoose the sound you'd like to hear:\n\n"
-
-	for i, choice := range m.choices {
-
-		cursor := " " // no cursor
-		if m.cursor == i {
-			cursor = ">" // cursor!
-		}
-
-		checked := " " // not selected
-		if i == m.selected {
-			checked = m.spinner.View() // selected!
-			choice = spinnerStyle.Render(choice)
-		}
-
-		// Render the row
-		s += fmt.Sprintf("%s %s %s\n", cursor, checked, choice)
-	}
-
-	// The footer
-	s += helpStyle.Render("\nPress q to quit.")
-
-	// Send the UI for rendering
-	return s
+	return docStyle.Render(m.list.View())
 }
 
 func (m Model) playTrack() tea.Msg {
-	track := m.choices[m.selected]
+	track := m.selected
 
 	track = snakeCase(track)
 
@@ -228,13 +189,8 @@ func (m Model) playTrack() tea.Msg {
 
 func (m Model) stopTrack() tea.Msg {
 	m.stop <- true
-
 	return statusMsg(0)
 }
-
-type statusMsg int
-
-type errMsg struct{ err error }
 
 func snakeCase(s string) string {
 	return strings.ToLower(
