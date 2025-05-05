@@ -38,7 +38,7 @@ func (i item) FilterValue() string { return i.title }
 
 var (
 	titleStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("231"))
-	docStyle          = lipgloss.NewStyle().Margin(1, 2)
+	docStyle          = lipgloss.NewStyle().Margin(1, 1)
 	selectedStyle     = lipgloss.NewStyle().Background(lipgloss.Color("103")).Foreground(lipgloss.Color("16")).Padding(0, 1)
 	selectedDescStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("103"))
 
