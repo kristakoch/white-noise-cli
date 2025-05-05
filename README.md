@@ -7,10 +7,10 @@ whshhhhhhhh shhhhhhhh shhhh
 `go build -o white-noise cmd/main.go`
 
 ### Run
-`go run ./bin/white-noise`
+`go build -o white-noise cmd/main.go && go run ./bin/white-noise`
 
 ### Install
-`go install -o "$(go env GOPATH)/bin/white-noise"`
+`go build -o white-noise cmd/main.go && cp bin/white-noise /usr/local/bin`
 
 ### Or...
 
